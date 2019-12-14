@@ -9,7 +9,7 @@
                 #f)))))
 
   (define (epsilon match index attr)
-    (list "" index attr))
+    (list index attr))
 
   (define (concat exp1 exp2)
     (lambda (match index attr)
@@ -50,9 +50,21 @@
             (list (car result) (action (substring match index (car result)) (cadr result) attr))
             #f))))
 
+  (define (y-letrec . args)
+    (letrec
+        ((f (lambda (g) (g g)))
+         (h (lambda (p)
+              (let loop ((args args))
+                (if (null? args)
+                    '()
+                    (cons (lambda (match index attr)
+                            ((apply (car args) (p p)) match index attr))
+                          (loop (cdr args))))))))
+      (car (f h))))
+
   (lambda (message . exps)
     (cond ((eq? message 'char) (apply char-matcher exps))
-          ((eq? message 'epslion) epsilon)
+          ((eq? message 'epsilon) epsilon)
           ((eq? message 'concat) (apply concat exps))
           ((eq? message 'choice) (apply choice exps))
           ((eq? message 'not) (apply lookahead-not exps))
@@ -60,5 +72,6 @@
           ((eq? message 'action) (apply action exps))
           ((eq? message 'one-or-more) (concat (car exps) (zero-or-more (car exps))))
           ((eq? message 'opt) (choice (car exps) epsilon))
-          ((eq? message 'lookahead) (lookahead-not (lookahead-not (car exps)))))))
+          ((eq? message 'lookahead) (lookahead-not (lookahead-not (car exps))))
+          ((eq? message 'letrec) (apply y-letrec exps)))))
 
